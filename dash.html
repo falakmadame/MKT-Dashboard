@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Madame — Marketing Weekly Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #161719;
+    --surface-2: #1e2024;
+    --surface-3: #26282d;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --text-muted: #7c7c7a;
+    --text-dim: #4a4a48;
+    --accent: #c8f060;
+    --accent-dim: rgba(200,240,96,0.12);
+    --accent-hover: #d4f57a;
+    --blue: #5b9cf6;
+    --blue-dim: rgba(91,156,246,0.12);
+    --teal: #3ecf8e;
+    --teal-dim: rgba(62,207,142,0.12);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --red: #f06060;
+    --red-dim: rgba(240,96,96,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --grid-color: rgba(255,255,255,0.04);
+    --tick-color: #4a4a48;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    padding: 28px 0;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo span { color: var(--accent); }
+  .nav { padding: 20px 0; flex: 1; }
+  .nav-section-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 24px;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 24px;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+  .nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+
+  /* WEEK SWITCHER IN SIDEBAR */
+  .week-switcher {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .week-switcher-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .week-btn {
+    display: block; width: 100%;
+    text-align: left;
+    background: none; border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-bottom: 6px;
+    transition: all 0.15s;
+  }
+  .week-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .week-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .week-btn .wdate { display: block; font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+  .week-btn.active .wdate { color: rgba(200,240,96,0.5); }
+
+  /* MAIN CONTENT */
+  .main { margin-left: 220px; padding: 40px 40px 60px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 36px;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .week-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: var(--surface-2);
+  }
+  .week-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: var(--border-hover); }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--kpi-color, var(--accent)), transparent);
+    opacity: 0.6;
+  }
+  .kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+  .kpi-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+  .kpi-meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; }
+  .delta { font-weight: 500; }
+  .delta.up { color: var(--teal); }
+  .delta.down { color: var(--red); }
+  .delta.neutral { color: var(--text-muted); }
+  .kpi-target { color: var(--text-muted); }
+
+  /* CHART CARDS */
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .chart-row-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .card-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+  .chart-container { position: relative; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 12px 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .data-table td {
+    padding: 10px 12px 10px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .data-table tr:last-child td { border-bottom: none; font-weight: 500; color: var(--text); }
+  .data-table tr:hover td { color: var(--text); }
+
+  /* ACTIVITY / CHECKLIST */
+  .activity-list { list-style: none; }
+  .activity-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    margin-top: 6px; flex-shrink: 0;
+  }
+  .activity-item .text { color: var(--text-muted); line-height: 1.5; }
+  .activity-item .tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 500;
+    padding: 2px 8px; border-radius: 4px;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .tag-done { background: var(--teal-dim); color: var(--teal); }
+  .tag-live { background: var(--accent-dim); color: var(--accent); }
+  .tag-wip { background: var(--blue-dim); color: var(--blue); }
+  .tag-plan { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+  /* STATUS BARS */
+  .stat-bar-row { margin-bottom: 14px; }
+  .stat-bar-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .stat-bar-label { color: var(--text-muted); }
+  .stat-bar-value { color: var(--text); font-weight: 500; }
+  .stat-bar-track { height: 5px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+  /* LEGEND */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; margin-bottom: 24px; background: var(--surface-2); border-radius: var(--radius-sm); padding: 4px; width: fit-content; }
+  .tab {
+    padding: 7px 18px;
+    font-size: 13px; font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tab.active { background: var(--surface-3); color: var(--text); }
+
+  /* INPUT FORM */
+  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .form-group label { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+  .form-group input, .form-group select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--surface-2); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px;
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn:active { transform: scale(0.98); }
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover { border-color: var(--border-hover); background: var(--surface-2); color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* COMPARISON TABLE */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .compare-table th {
+    text-align: center; padding: 10px 16px;
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table th:first-child { text-align: left; }
+  .compare-table td {
+    text-align: center; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .compare-table td:first-child { text-align: left; color: var(--text); font-weight: 500; }
+  .compare-table tr:last-child td { border-bottom: none; }
+
+  /* MISC */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
+  .notification {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    background: var(--teal-dim);
+    border: 1px solid rgba(62,207,142,0.2);
+    border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--teal);
+    margin-bottom: 20px;
+    display: none;
+  }
+  .notification.show { display: flex; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-row, .chart-row-3 { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .main { margin-left: 0; padding: 24px 20px; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">MADAME<span>.</span></div>
+  <div class="nav">
+    <div class="nav-section-label">Reports</div>
+    <div class="nav-item active" onclick="showPage('overview', this)">
+      <span class="icon">◈</span> Overview
+    </div>
+    <div class="nav-item" onclick="showPage('footfall', this)">
+      <span class="icon">◎</span> EBO Footfall
+    </div>
+    <div class="nav-item" onclick="showPage('performance', this)">
+      <span class="icon">◐</span> Performance
+    </div>
+    <div class="nav-item" onclick="showPage('seo', this)">
+      <span class="icon">◑</span> SEO & Traffic
+    </div>
+    <div class="nav-section-label">Manage</div>
+    <div class="nav-item" onclick="showPage('activity', this)">
+      <span class="icon">◻</span> Activity Log
+    </div>
+    <div class="nav-item" onclick="showPage('input', this)">
+      <span class="icon">＋</span> Add Week Data
+    </div>
+    <div class="nav-item" onclick="showPage('compare', this)">
+      <span class="icon">⊞</span> Compare Weeks
+    </div>
+  </div>
+  <div class="week-switcher">
+    <div class="week-switcher-label">Active Week</div>
+    <div id="weekButtons"></div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- OVERVIEW PAGE -->
+  <div class="page active" id="page-overview">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Weekly Overview</div>
+        <div class="page-subtitle" id="overview-subtitle">Marketing performance at a glance</div>
+      </div>
+      <div class="week-badge"><div class="dot"></div><span id="overview-weekname">23–29 Mar 2026</span></div>
+    </div>
+
+    <div class="kpi-grid" id="overview-kpis"></div>
+
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-title">Daily Footfall</div>
+        <div class="card-subtitle" id="ff-subtitle">Bills & footfall across the week</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#5b9cf6"></div>Total Footfall</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#c8f060"></div>Total Bills</div>
+        </div>
+        <div class="chart-container" style="height:220px">
+          <canvas id="overviewFootfallChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Campaign ROAS</div>
+        <div class="card-subtitle">Actual vs target return on ad spend</div>
+        <div class="chart-container" style="height:260px">
+          <canvas id="overviewRoasChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-row-3">
+      <div class="card">
+        <div class="card-title">Website Performance</div>
+        <div class="card-subtitle">Traffic, sessions, conversions vs targets</div>
+        <div id="web-stat-bars"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">SEO Health</div>
+        <div class="card-subtitle">Organic channel performance</div>
+        <div id="seo-stat-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTFALL PAGE -->
+  <div class="page" id="page-footfall">
+    <div class="page-header">
+      <div>
+        <div class="page-title">EBO Footfall</div>
+        <div class="page-subtitle">Exclusive Brand Outlet store data</div>
+      </div>
+      <div class="week-badge"><div class="dot"></div><span id="ff-weekname">23–29 Mar 2026</span></div>
+    </div>
+
+    <div class="kpi-grid" id="footfall-kpis"></div>
+
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-title">Daily Footfall & Bills</div>
+        <div class="card-subtitle">Day-by-day breakdown</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#5b9cf6"></div>Footfall</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#c8f060"></div>Bills</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e"></div>L2L</div>
+        </div>
+        <div class="chart-container" style="height:260px">
+          <canvas id="footfallDetailChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">New vs Repeat Customers</div>
+        <div class="card-subtitle">Mobile customer breakdown</div>
+        <div class="chart-container" style="height:300px">
+          <canvas id="custMixChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Daily Footfall Table</div>
+      <div class="card-subtitle" style="margin-bottom:16px">Full day-by-day data</div>
+      <table class="data-table" id="footfall-table">
+        <thead><tr>
+          <th>Date</th><th>Total Bills</th><th>Total Footfall</th>
+          <th>Repeat MOB</th><th>New MOB</th><th>Missed MOB</th><th>L2L Footfall</th>
+        </tr></thead>
+        <tbody id="footfall-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PERFORMANCE PAGE -->
+  <div class="page" id="page-performance">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Performance Marketing</div>
+        <div class="page-subtitle">Meta & Google campaign data — madameonline.com</div>
+      </div>
+      <div class="week-badge"><div class="dot"></div><span id="pm-weekname">22–28 Mar 2026</span></div>
+    </div>
+
+    <div class="kpi-grid" id="perf-kpis"></div>
+
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-title">Revenue: Actual vs Target</div>
+        <div class="card-subtitle">Campaign revenue performance (₹)</div>
+        <div class="chart-container" style="height:240px">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">ROAS Comparison</div>
+        <div class="card-subtitle">Return on ad spend by channel</div>
+        <div class="chart-container" style="height:240px">
+          <canvas id="roasDetailChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Campaign Summary Table</div>
+      <div class="card-subtitle" style="margin-bottom:16px">Spend, ROAS, revenue by channel</div>
+      <table class="data-table" id="perf-table">
+        <thead><tr><th>Channel</th><th>Campaign Cost (₹)</th><th>Actual ROAS</th><th>Actual Revenue (₹)</th><th>Target ROAS</th><th>Target Revenue (₹)</th><th>Gap</th></tr></thead>
+        <tbody id="perf-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SEO PAGE -->
+  <div class="page" id="page-seo">
+    <div class="page-header">
+      <div>
+        <div class="page-title">SEO & Web Traffic</div>
+        <div class="page-subtitle">Organic and paid traffic to madameonline.com</div>
+      </div>
+      <div class="week-badge"><div class="dot"></div><span id="seo-weekname">22–28 Mar 2026</span></div>
+    </div>
+    <div class="kpi-grid" id="seo-kpis"></div>
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-title">Traffic & Sessions</div>
+        <div class="card-subtitle">Paid vs organic actual vs target</div>
+        <div class="chart-container" style="height:260px">
+          <canvas id="trafficChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Conversion Rates</div>
+        <div class="card-subtitle">Paid vs SEO conversion %</div>
+        <div class="chart-container" style="height:260px">
+          <canvas id="cvrChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY PAGE -->
+  <div class="page" id="page-activity">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Activity Log</div>
+        <div class="page-subtitle">Marketing initiatives and status tracking</div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-title">Social Media</div>
+        <div class="card-subtitle">Campaigns, shoots, influencers</div>
+        <ul class="activity-list" id="activity-social"></ul>
+      </div>
+      <div class="card">
+        <div class="card-title">Offline & Retail</div>
+        <div class="card-subtitle">Store launches, events, BTL</div>
+        <ul class="activity-list" id="activity-offline"></ul>
+      </div>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div class="card-title">PR & Upcoming</div>
+      <div class="card-subtitle">Press, media, next week pipeline</div>
+      <ul class="activity-list" id="activity-pr"></ul>
+    </div>
+  </div>
+
+  <!-- INPUT PAGE -->
+  <div class="page" id="page-input">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Add Week Data</div>
+        <div class="page-subtitle">Enter data for a new reporting week</div>
+      </div>
+    </div>
+
+    <div class="notification" id="save-notif">✓ Week data saved successfully!</div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Week Info</div>
+      <div class="card-subtitle" style="margin-bottom:18px">Name and date range</div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="form-group">
+          <label>Week Name</label>
+          <input type="text" id="inp-weekname" placeholder="e.g. 7–12 Apr">
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="inp-startdate">
+        </div>
+        <div class="form-group">
+          <label>End Date</label>
+          <input type="date" id="inp-enddate">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">EBO Footfall</div>
+      <div class="card-subtitle" style="margin-bottom:18px">Store-level footfall summary</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Total Bills</label><input type="number" id="inp-bills" placeholder="4658"></div>
+        <div class="form-group"><label>Total Footfall</label><input type="number" id="inp-footfall" placeholder="8103"></div>
+        <div class="form-group"><label>L2L Footfall</label><input type="number" id="inp-l2l" placeholder="9318"></div>
+        <div class="form-group"><label>Repeat MOB</label><input type="number" id="inp-repeat" placeholder="2356"></div>
+        <div class="form-group"><label>New MOB</label><input type="number" id="inp-newmob" placeholder="1387"></div>
+        <div class="form-group"><label>Missed MOB</label><input type="number" id="inp-missed" placeholder="50"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Performance Marketing</div>
+      <div class="card-subtitle" style="margin-bottom:18px">Meta & Google campaign actuals</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Meta Spend (₹)</label><input type="number" id="inp-meta-spend" placeholder="23181"></div>
+        <div class="form-group"><label>Meta ROAS</label><input type="number" step="0.01" id="inp-meta-roas" placeholder="9.76"></div>
+        <div class="form-group"><label>Meta Revenue (₹)</label><input type="number" id="inp-meta-rev" placeholder="226238"></div>
+        <div class="form-group"><label>Google Spend (₹)</label><input type="number" id="inp-goog-spend" placeholder="12441"></div>
+        <div class="form-group"><label>Google ROAS</label><input type="number" step="0.01" id="inp-goog-roas" placeholder="10.32"></div>
+        <div class="form-group"><label>Google Revenue (₹)</label><input type="number" id="inp-goog-rev" placeholder="128417"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Website & SEO</div>
+      <div class="card-subtitle" style="margin-bottom:18px">Traffic, sessions, conversions</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Paid Traffic</label><input type="number" id="inp-paid-traffic" placeholder="20142"></div>
+        <div class="form-group"><label>Paid Sessions</label><input type="number" id="inp-paid-sess" placeholder="27310"></div>
+        <div class="form-group"><label>Paid Conversions</label><input type="number" id="inp-paid-conv" placeholder="232"></div>
+        <div class="form-group"><label>SEO Traffic</label><input type="number" id="inp-seo-traffic" placeholder="1787"></div>
+        <div class="form-group"><label>SEO Sessions</label><input type="number" id="inp-seo-sess" placeholder="2144"></div>
+        <div class="form-group"><label>SEO Conversions</label><input type="number" id="inp-seo-conv" placeholder="16"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:28px">
+      <div class="card-title">SM Follower Target</div>
+      <div class="card-subtitle" style="margin-bottom:18px">Social media goals</div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="form-group"><label>Follower Target</label><input type="number" id="inp-sm-target" placeholder="1250"></div>
+        <div class="form-group"><label>Follower Achievement</label><input type="number" id="inp-sm-actual" placeholder="0"></div>
+        <div class="form-group"><label>Ad Spend Followers (₹)</label><input type="number" id="inp-sm-spend" placeholder="0"></div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn" onclick="saveWeek()">Save Week →</button>
+      <button class="btn btn-ghost" onclick="clearForm()">Clear Form</button>
+    </div>
+  </div>
+
+  <!-- COMPARE PAGE -->
+  <div class="page" id="page-compare">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Week Comparison</div>
+        <div class="page-subtitle">Side-by-side metric comparison across weeks</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Select Weeks to Compare</div>
+      <div class="card-subtitle" style="margin-bottom:16px">Choose two weeks for comparison</div>
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <div class="form-group" style="min-width:180px;">
+          <label>Week A</label>
+          <select id="cmp-week-a"></select>
+        </div>
+        <div class="form-group" style="min-width:180px;">
+          <label>Week B</label>
+          <select id="cmp-week-b"></select>
+        </div>
+        <button class="btn" style="margin-top:14px" onclick="renderCompare()">Compare →</button>
+      </div>
+    </div>
+    <div id="compare-output"></div>
+  </div>
+
+</main>
+
+<script>
+// ─── DATA STORE ──────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'madame_weekly_data';
+
+const defaultData = [
+  {
+    id: 'w1', name: '23–29 Mar', startDate: '2026-03-23', endDate: '2026-03-29',
+    footfall: { bills: 4658, footfall: 8103, l2l: 9318, repeat: 2356, newMob: 1387, missed: 50,
+      daily: [
+        { date: '23 Mar', bills: 554, footfall: 955, l2l: 2024 },
+        { date: '24 Mar', bills: 535, footfall: 936, l2l: 1047 },
+        { date: '25 Mar', bills: 490, footfall: 867, l2l: 1165 },
+        { date: '26 Mar', bills: 646, footfall: 1077, l2l: 1128 },
+        { date: '27 Mar', bills: 654, footfall: 1073, l2l: 1236 },
+        { date: '28 Mar', bills: 843, footfall: 1431, l2l: 1219 },
+        { date: '29 Mar', bills: 936, footfall: 1764, l2l: 1499 },
+      ]
+    },
+    perf: { metaSpend: 23181, metaRoas: 9.76, metaRev: 226238, metaTargRoas: 10, metaTargRev: 240000,
+            googSpend: 12441, googRoas: 10.32, googRev: 128417, googTargRoas: 10, googTargRev: 150000 },
+    web: { paidTraffic: 20142, paidSess: 27310, paidConv: 232, paidTargTraffic: 20000, paidTargSess: 25000, paidTargConv: 250,
+           seoTraffic: 1787, seoSess: 2144, seoConv: 16, seoTargTraffic: 5000, seoTargSess: 6500, seoTargConv: 70 },
+    sm: { target: 1250, actual: 0, spend: 0 },
+    activity: {
+      social: [
+        { text: "Women's Day social media campaign", status: 'done' },
+        { text: 'UGC visits plan initiated', status: 'wip' },
+        { text: 'Planned shoots for social media', status: 'plan' },
+        { text: 'CAMLA Spring launch content', status: 'wip' },
+        { text: 'Broadcast channel plan', status: 'plan' },
+        { text: 'Meta boosting for followers & website', status: 'live' },
+        { text: 'Madame in-house shoot', status: 'plan' },
+        { text: 'Ludhiana event influencer plan', status: 'wip' },
+        { text: 'Msecret featured in The50 show (barter)', status: 'live' },
+        { text: 'Madame dress sent to Divya Aggarwal (credits pending)', status: 'wip' },
+      ],
+      offline: [
+        { text: 'Personality development session planned PAN India', status: 'plan' },
+        { text: 'MOD & Pacific DDN summer launch setup done', status: 'done' },
+        { text: 'Pacific Tagore Garden atrium setup done', status: 'done' },
+        { text: 'Indore event (denim) planning — mid March', status: 'wip' },
+        { text: 'Ludhiana Sunview store launch planning', status: 'wip' },
+        { text: 'Seedings done', status: 'done' },
+        { text: 'Tier 3 stores BTL planning', status: 'plan' },
+      ],
+      pr: [
+        { text: 'Launch release preparation', status: 'plan' },
+        { text: 'Relevant media stories identification', status: 'plan' },
+        { text: 'LPU Visit (in discussion)', status: 'wip' },
+        { text: 'IREC in discussion', status: 'wip' },
+      ]
+    }
+  },
+  {
+    id: 'w2', name: '30 Mar–5 Apr', startDate: '2026-03-30', endDate: '2026-04-05',
+    footfall: { bills: 4725, footfall: 8316, l2l: 10022, repeat: 2346, newMob: 1427, missed: 63,
+      daily: [
+        { date: '16 Mar', bills: 582, footfall: 1025, l2l: 2077 },
+        { date: '17 Mar', bills: 614, footfall: 1020, l2l: 1155 },
+        { date: '18 Mar', bills: 551, footfall: 985, l2l: 1292 },
+        { date: '19 Mar', bills: 529, footfall: 892, l2l: 1235 },
+        { date: '20 Mar', bills: 553, footfall: 1041, l2l: 1190 },
+        { date: '21 Mar', bills: 915, footfall: 1672, l2l: 1314 },
+        { date: '22 Mar', bills: 981, footfall: 1681, l2l: 1759 },
+      ]
+    },
+    perf: { metaSpend: 23181, metaRoas: 9.76, metaRev: 226238, metaTargRoas: 10, metaTargRev: 240000,
+            googSpend: 12441, googRoas: 10.32, googRev: 128417, googTargRoas: 10, googTargRev: 150000 },
+    web: { paidTraffic: 20142, paidSess: 27310, paidConv: 232, paidTargTraffic: 20000, paidTargSess: 25000, paidTargConv: 250,
+           seoTraffic: 1787, seoSess: 2144, seoConv: 16, seoTargTraffic: 5000, seoTargSess: 6500, seoTargConv: 70 },
+    sm: { target: 1250, actual: 0, spend: 0 },
+    activity: {
+      social: [
+        { text: "Women's Day campaign — LIVE", status: 'live' },
+        { text: 'UGC plan for LoveMadame launch', status: 'wip' },
+        { text: 'Xeno campaign execution added', status: 'live' },
+        { text: 'Influencers onboarding Spring', status: 'wip' },
+        { text: 'Meta boosting for followers & website', status: 'live' },
+        { text: 'Verification badge application (reapply)', status: 'plan' },
+        { text: 'Msecret & Madame collab plan', status: 'wip' },
+        { text: 'In-store video shoots for Madame', status: 'plan' },
+        { text: 'In-house video shoots for Madame', status: 'plan' },
+        { text: 'Ludhiana event influencer plan', status: 'wip' },
+      ],
+      offline: [
+        { text: 'Pacific Jasola atrium setup — CLOSED', status: 'done' },
+        { text: 'Mall of Faridabad atrium — CLOSED', status: 'done' },
+        { text: 'Ludhiana Sunview store launch — 14 April', status: 'plan' },
+        { text: 'Summer event April planning ongoing', status: 'wip' },
+        { text: 'Tier 3 BTL activities planning', status: 'wip' },
+        { text: 'Personality development session — 10 March done', status: 'done' },
+        { text: 'Indore denim event — confirmed 20 March', status: 'done' },
+      ],
+      pr: [
+        { text: 'Launch release', status: 'plan' },
+        { text: 'Relevant media stories', status: 'plan' },
+        { text: 'LPU Visit', status: 'wip' },
+        { text: 'IREC in discussion', status: 'wip' },
+        { text: 'Customer boxes planning', status: 'plan' },
+        { text: 'Customer event planning', status: 'plan' },
+      ]
+    }
+  }
+];
+
+let weeks = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || defaultData;
+let activeWeekId = weeks[weeks.length - 1].id;
+let chartInstances = {};
+
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(weeks));
+}
+
+function getActiveWeek() { return weeks.find(w => w.id === activeWeekId) || weeks[0]; }
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  renderCurrentPage(name);
+}
+
+function renderCurrentPage(name) {
+  if (name === 'overview') renderOverview();
+  else if (name === 'footfall') renderFootfall();
+  else if (name === 'performance') renderPerformance();
+  else if (name === 'seo') renderSeo();
+  else if (name === 'activity') renderActivity();
+  else if (name === 'compare') renderCompareSelects();
+}
+
+// ─── WEEK SWITCHER ────────────────────────────────────────────────────────────
+function renderWeekButtons() {
+  const container = document.getElementById('weekButtons');
+  container.innerHTML = '';
+  weeks.forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'week-btn' + (w.id === activeWeekId ? ' active' : '');
+    btn.innerHTML = `${w.name}<span class="wdate">${w.startDate || ''}</span>`;
+    btn.onclick = () => { activeWeekId = w.id; renderWeekButtons(); renderCurrentPage(document.querySelector('.page.active').id.replace('page-', '')); };
+    container.appendChild(btn);
+  });
+}
+
+// ─── CHART HELPER ─────────────────────────────────────────────────────────────
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+const gridColor = 'rgba(255,255,255,0.05)';
+const tickColor = '#4a4a48';
+const baseOpts = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: tickColor, font: { size: 11, family: 'DM Sans' } }, grid: { display: false } },
+    y: { ticks: { color: tickColor, font: { size: 11, family: 'DM Sans' } }, grid: { color: gridColor } }
+  }
+};
+
+// ─── STAT BARS ────────────────────────────────────────────────────────────────
+function statBar(label, actual, target, color) {
+  const pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0;
+  const delta = target > 0 ? ((actual - target) / target * 100).toFixed(1) : 0;
+  const good = actual >= target;
+  return `<div class="stat-bar-row">
+    <div class="stat-bar-header">
+      <span class="stat-bar-label">${label}</span>
+      <span class="stat-bar-value">${actual.toLocaleString()} <span class="delta ${good ? 'up' : 'down'}" style="font-size:11px">${good ? '↑' : '↓'}${Math.abs(delta)}%</span></span>
+    </div>
+    <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%; background:${color}"></div></div>
+  </div>`;
+}
+
+// ─── OVERVIEW ────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const w = getActiveWeek();
+  document.getElementById('overview-weekname').textContent = w.name;
+  document.getElementById('overview-subtitle').textContent = `${w.startDate} → ${w.endDate}`;
+
+  const kpis = [
+    { label: 'Total Footfall', value: w.footfall.footfall.toLocaleString(), sub: `Bills: ${w.footfall.bills.toLocaleString()}`, color: '#5b9cf6' },
+    { label: 'L2L Footfall', value: w.footfall.l2l.toLocaleString(), sub: `Repeat: ${w.footfall.repeat.toLocaleString()}`, color: '#c8f060' },
+    { label: 'Total Revenue', value: '₹' + ((w.perf.metaRev + w.perf.googRev) / 100000).toFixed(2) + 'L', sub: `Meta + Google`, color: '#3ecf8e' },
+    { label: 'Paid Conv. Rate', value: (w.web.paidConv / w.web.paidTraffic * 100).toFixed(2) + '%', sub: `${w.web.paidConv} / ${w.web.paidTraffic.toLocaleString()}`, color: '#f5a623' },
+  ];
+  document.getElementById('overview-kpis').innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-meta"><span class="kpi-target">${k.sub}</span></div>
+    </div>`).join('');
+
+  destroyChart('overviewFootfall');
+  const ctx1 = document.getElementById('overviewFootfallChart').getContext('2d');
+  chartInstances['overviewFootfall'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: w.footfall.daily.map(d => d.date),
+      datasets: [
+        { label: 'Footfall', data: w.footfall.daily.map(d => d.footfall), backgroundColor: '#5b9cf6', borderRadius: 4 },
+        { label: 'Bills', data: w.footfall.daily.map(d => d.bills), backgroundColor: '#c8f060', borderRadius: 4 }
+      ]
+    },
+    options: { ...baseOpts, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  destroyChart('overviewRoas');
+  const ctx2 = document.getElementById('overviewRoasChart').getContext('2d');
+  chartInstances['overviewRoas'] = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: ['Meta Actual', 'Meta Target', 'Google Actual', 'Google Target'],
+      datasets: [{ data: [w.perf.metaRoas, w.perf.metaTargRoas, w.perf.googRoas, w.perf.googTargRoas],
+        backgroundColor: ['#5b9cf6','rgba(91,156,246,0.3)','#3ecf8e','rgba(62,207,142,0.3)'], borderRadius: 5 }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { min: 8.5, max: 11.5, ticks: { color: tickColor, font: { size: 11 }, callback: v => v.toFixed(1) }, grid: { color: gridColor } }, y: { ticks: { color: tickColor, font: { size: 11 } }, grid: { display: false } } } }
+  });
+
+  document.getElementById('web-stat-bars').innerHTML =
+    statBar('Paid Traffic', w.web.paidTraffic, w.web.paidTargTraffic, '#5b9cf6') +
+    statBar('Paid Sessions', w.web.paidSess, w.web.paidTargSess, '#c8f060') +
+    statBar('Paid Conversions', w.web.paidConv, w.web.paidTargConv, '#f5a623');
+
+  document.getElementById('seo-stat-bars').innerHTML =
+    statBar('SEO Traffic', w.web.seoTraffic, w.web.seoTargTraffic, '#3ecf8e') +
+    statBar('SEO Sessions', w.web.seoSess, w.web.seoTargSess, '#c8f060') +
+    statBar('SEO Conversions', w.web.seoConv, w.web.seoTargConv, '#f06060');
+}
+
+// ─── FOOTFALL ────────────────────────────────────────────────────────────────
+function renderFootfall() {
+  const w = getActiveWeek();
+  document.getElementById('ff-weekname').textContent = w.name;
+  const f = w.footfall;
+
+  document.getElementById('footfall-kpis').innerHTML = [
+    { label: 'Total Bills', value: f.bills.toLocaleString(), color: '#c8f060' },
+    { label: 'Total Footfall', value: f.footfall.toLocaleString(), color: '#5b9cf6' },
+    { label: 'L2L Footfall', value: f.l2l.toLocaleString(), color: '#3ecf8e' },
+    { label: 'New MOB', value: (f.newMob || 0).toLocaleString(), color: '#f5a623' },
+  ].map(k => `<div class="kpi-card" style="--kpi-color:${k.color}"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div></div>`).join('');
+
+  destroyChart('footfallDetail');
+  const ctx = document.getElementById('footfallDetailChart').getContext('2d');
+  chartInstances['footfallDetail'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: f.daily.map(d => d.date),
+      datasets: [
+        { label: 'Footfall', data: f.daily.map(d => d.footfall), backgroundColor: '#5b9cf6', borderRadius: 4 },
+        { label: 'Bills', data: f.daily.map(d => d.bills), backgroundColor: '#c8f060', borderRadius: 4 },
+      ]
+    },
+    options: { ...baseOpts, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  destroyChart('custMix');
+  const ctx2 = document.getElementById('custMixChart').getContext('2d');
+  chartInstances['custMix'] = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Repeat MOB', 'New MOB', 'Missed MOB'],
+      datasets: [{ data: [f.repeat || 0, f.newMob || 0, f.missed || 0],
+        backgroundColor: ['#5b9cf6','#c8f060','rgba(255,255,255,0.1)'], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: tickColor, font: { size: 11 }, padding: 12, boxWidth: 10 } } } }
+  });
+
+  const tbody = document.getElementById('footfall-tbody');
+  tbody.innerHTML = f.daily.map(d => `<tr>
+    <td>${d.date}</td><td>${d.bills.toLocaleString()}</td><td>${d.footfall.toLocaleString()}</td>
+    <td>—</td><td>—</td><td>—</td><td>${d.l2l.toLocaleString()}</td>
+  </tr>`).join('') + `<tr>
+    <td>TOTAL</td><td>${f.bills.toLocaleString()}</td><td>${f.footfall.toLocaleString()}</td>
+    <td>${(f.repeat||0).toLocaleString()}</td><td>${(f.newMob||0).toLocaleString()}</td><td>${(f.missed||0).toLocaleString()}</td><td>${f.l2l.toLocaleString()}</td>
+  </tr>`;
+}
+
+// ─── PERFORMANCE ─────────────────────────────────────────────────────────────
+function renderPerformance() {
+  const w = getActiveWeek();
+  document.getElementById('pm-weekname').textContent = w.name;
+  const p = w.perf;
+  const totalRev = p.metaRev + p.googRev;
+  const totalSpend = p.metaSpend + p.googSpend;
+
+  document.getElementById('perf-kpis').innerHTML = [
+    { label: 'Total Ad Spend', value: '₹' + totalSpend.toLocaleString(), color: '#f06060' },
+    { label: 'Total Revenue', value: '₹' + (totalRev / 100000).toFixed(2) + 'L', color: '#c8f060' },
+    { label: 'Meta ROAS', value: p.metaRoas.toFixed(2), sub: 'Target: ' + p.metaTargRoas, color: p.metaRoas >= p.metaTargRoas ? '#3ecf8e' : '#f5a623' },
+    { label: 'Google ROAS', value: p.googRoas.toFixed(2), sub: 'Target: ' + p.googTargRoas, color: p.googRoas >= p.googTargRoas ? '#3ecf8e' : '#f5a623' },
+  ].map(k => `<div class="kpi-card" style="--kpi-color:${k.color}"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div>${k.sub ? `<div class="kpi-meta"><span class="kpi-target">${k.sub}</span></div>` : ''}</div>`).join('');
+
+  destroyChart('revenue');
+  const ctx1 = document.getElementById('revenueChart').getContext('2d');
+  chartInstances['revenue'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['Meta', 'Google'],
+      datasets: [
+        { label: 'Actual', data: [p.metaRev, p.googRev], backgroundColor: ['#5b9cf6','#3ecf8e'], borderRadius: 5 },
+        { label: 'Target', data: [p.metaTargRev, p.googTargRev], backgroundColor: ['rgba(91,156,246,0.25)','rgba(62,207,142,0.25)'], borderRadius: 5 }
+      ]
+    },
+    options: { ...baseOpts, responsive: true, maintainAspectRatio: false,
+      scales: { x: { ticks: { color: tickColor }, grid: { display: false } },
+                y: { ticks: { color: tickColor, callback: v => '₹' + (v/1000).toFixed(0) + 'k' }, grid: { color: gridColor } } } }
+  });
+
+  destroyChart('roasDetail');
+  const ctx2 = document.getElementById('roasDetailChart').getContext('2d');
+  chartInstances['roasDetail'] = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: ['Meta Actual', 'Meta Target', 'Google Actual', 'Google Target'],
+      datasets: [{ data: [p.metaRoas, p.metaTargRoas, p.googRoas, p.googTargRoas],
+        backgroundColor: ['#5b9cf6','rgba(91,156,246,0.3)','#3ecf8e','rgba(62,207,142,0.3)'], borderRadius: 5 }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { min: 8, max: 12, ticks: { color: tickColor, font: { size: 11 }, callback: v => v.toFixed(1) }, grid: { color: gridColor } }, y: { ticks: { color: tickColor }, grid: { display: false } } } }
+  });
+
+  const gap = (act, targ) => {
+    const diff = act - targ;
+    const cls = diff >= 0 ? 'up' : 'down';
+    return `<span class="delta ${cls}">${diff >= 0 ? '+' : ''}₹${Math.abs(diff).toLocaleString()}</span>`;
+  };
+  document.getElementById('perf-tbody').innerHTML = `
+    <tr><td>Meta</td><td>₹${p.metaSpend.toLocaleString()}</td><td>${p.metaRoas.toFixed(2)}</td><td>₹${p.metaRev.toLocaleString()}</td><td>${p.metaTargRoas}</td><td>₹${p.metaTargRev.toLocaleString()}</td><td>${gap(p.metaRev, p.metaTargRev)}</td></tr>
+    <tr><td>Google</td><td>₹${p.googSpend.toLocaleString()}</td><td>${p.googRoas.toFixed(2)}</td><td>₹${p.googRev.toLocaleString()}</td><td>${p.googTargRoas}</td><td>₹${p.googTargRev.toLocaleString()}</td><td>${gap(p.googRev, p.googTargRev)}</td></tr>
+    <tr><td>Total</td><td>₹${totalSpend.toLocaleString()}</td><td>${((p.metaRev+p.googRev)/(p.metaSpend+p.googSpend)).toFixed(2)}</td><td>₹${totalRev.toLocaleString()}</td><td>—</td><td>₹${(p.metaTargRev+p.googTargRev).toLocaleString()}</td><td>${gap(totalRev, p.metaTargRev+p.googTargRev)}</td></tr>`;
+}
+
+// ─── SEO ─────────────────────────────────────────────────────────────────────
+function renderSeo() {
+  const w = getActiveWeek();
+  document.getElementById('seo-weekname').textContent = w.name;
+  const wb = w.web;
+  const paidCvr = (wb.paidConv / wb.paidTraffic * 100).toFixed(2);
+  const seoCvr = wb.seoTraffic > 0 ? (wb.seoConv / wb.seoTraffic * 100).toFixed(2) : '0.00';
+
+  document.getElementById('seo-kpis').innerHTML = [
+    { label: 'Paid Traffic', value: wb.paidTraffic.toLocaleString(), sub: `Target: ${wb.paidTargTraffic.toLocaleString()}`, ok: wb.paidTraffic >= wb.paidTargTraffic },
+    { label: 'Paid Conversions', value: wb.paidConv, sub: `Target: ${wb.paidTargConv}`, ok: wb.paidConv >= wb.paidTargConv },
+    { label: 'SEO Traffic', value: wb.seoTraffic.toLocaleString(), sub: `Target: ${wb.seoTargTraffic.toLocaleString()}`, ok: wb.seoTraffic >= wb.seoTargTraffic },
+    { label: 'SEO Conversions', value: wb.seoConv, sub: `Target: ${wb.seoTargConv}`, ok: wb.seoConv >= wb.seoTargConv },
+  ].map(k => `<div class="kpi-card" style="--kpi-color:${k.ok ? '#3ecf8e' : '#f06060'}">
+    <div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div>
+    <div class="kpi-meta"><span class="kpi-target">${k.sub}</span></div>
+  </div>`).join('');
+
+  destroyChart('traffic');
+  const ctx1 = document.getElementById('trafficChart').getContext('2d');
+  chartInstances['traffic'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['Paid Traffic','Paid Sessions','SEO Traffic','SEO Sessions'],
+      datasets: [
+        { label: 'Actual', data: [wb.paidTraffic, wb.paidSess, wb.seoTraffic, wb.seoSess], backgroundColor: '#5b9cf6', borderRadius: 4 },
+        { label: 'Target', data: [wb.paidTargTraffic, wb.paidTargSess, wb.seoTargTraffic, wb.seoTargSess], backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 4 }
+      ]
+    },
+    options: { ...baseOpts, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  destroyChart('cvr');
+  const ctx2 = document.getElementById('cvrChart').getContext('2d');
+  chartInstances['cvr'] = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: ['Paid CVR', 'SEO CVR'],
+      datasets: [{ data: [parseFloat(paidCvr), parseFloat(seoCvr)], backgroundColor: ['#c8f060','#3ecf8e'], borderRadius: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: tickColor }, grid: { display: false } },
+                y: { ticks: { color: tickColor, callback: v => v + '%' }, grid: { color: gridColor } } } }
+  });
+}
+
+// ─── ACTIVITY ─────────────────────────────────────────────────────────────────
+const statusColors = { done: '#3ecf8e', live: '#c8f060', wip: '#5b9cf6', plan: '#4a4a48' };
+const statusLabel = { done: 'Done', live: 'Live', wip: 'In progress', plan: 'Planned' };
+
+function renderActivity() {
+  const w = getActiveWeek();
+  ['social', 'offline', 'pr'].forEach(cat => {
+    const list = document.getElementById('activity-' + cat);
+    list.innerHTML = (w.activity[cat] || []).map(item => `
+      <li class="activity-item">
+        <div class="activity-dot" style="background:${statusColors[item.status]}"></div>
+        <div class="text">${item.text}<span class="tag tag-${item.status}">${statusLabel[item.status]}</span></div>
+      </li>`).join('');
+  });
+}
+
+// ─── INPUT / SAVE ─────────────────────────────────────────────────────────────
+function saveWeek() {
+  const name = document.getElementById('inp-weekname').value.trim();
+  if (!name) { alert('Please enter a week name.'); return; }
+
+  const v = id => { const el = document.getElementById(id); return parseFloat(el.value) || 0; };
+  const s = id => { const el = document.getElementById(id); return el.value || ''; };
+
+  const newWeek = {
+    id: 'w' + Date.now(),
+    name,
+    startDate: s('inp-startdate'),
+    endDate: s('inp-enddate'),
+    footfall: { bills: v('inp-bills'), footfall: v('inp-footfall'), l2l: v('inp-l2l'), repeat: v('inp-repeat'), newMob: v('inp-newmob'), missed: v('inp-missed'), daily: [] },
+    perf: { metaSpend: v('inp-meta-spend'), metaRoas: v('inp-meta-roas'), metaRev: v('inp-meta-rev'), metaTargRoas: 10, metaTargRev: 240000, googSpend: v('inp-goog-spend'), googRoas: v('inp-goog-roas'), googRev: v('inp-goog-rev'), googTargRoas: 10, googTargRev: 150000 },
+    web: { paidTraffic: v('inp-paid-traffic'), paidSess: v('inp-paid-sess'), paidConv: v('inp-paid-conv'), paidTargTraffic: 20000, paidTargSess: 25000, paidTargConv: 250, seoTraffic: v('inp-seo-traffic'), seoSess: v('inp-seo-sess'), seoConv: v('inp-seo-conv'), seoTargTraffic: 5000, seoTargSess: 6500, seoTargConv: 70 },
+    sm: { target: v('inp-sm-target') || 1250, actual: v('inp-sm-actual'), spend: v('inp-sm-spend') },
+    activity: { social: [], offline: [], pr: [] }
+  };
+
+  weeks.push(newWeek);
+  activeWeekId = newWeek.id;
+  saveToStorage();
+  renderWeekButtons();
+  renderCompareSelects();
+
+  const notif = document.getElementById('save-notif');
+  notif.classList.add('show');
+  setTimeout(() => notif.classList.remove('show'), 3000);
+}
+
+function clearForm() {
+  ['inp-weekname','inp-startdate','inp-enddate','inp-bills','inp-footfall','inp-l2l','inp-repeat','inp-newmob','inp-missed','inp-meta-spend','inp-meta-roas','inp-meta-rev','inp-goog-spend','inp-goog-roas','inp-goog-rev','inp-paid-traffic','inp-paid-sess','inp-paid-conv','inp-seo-traffic','inp-seo-sess','inp-seo-conv','inp-sm-target','inp-sm-actual','inp-sm-spend'].forEach(id => { document.getElementById(id).value = ''; });
+}
+
+// ─── COMPARE ──────────────────────────────────────────────────────────────────
+function renderCompareSelects() {
+  ['cmp-week-a', 'cmp-week-b'].forEach((id, i) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = weeks.map((w, idx) => `<option value="${w.id}" ${idx === i ? 'selected' : ''}>${w.name}</option>`).join('');
+  });
+}
+
+function renderCompare() {
+  const wA = weeks.find(w => w.id === document.getElementById('cmp-week-a').value);
+  const wB = weeks.find(w => w.id === document.getElementById('cmp-week-b').value);
+  if (!wA || !wB) return;
+
+  const row = (label, a, b, fmt = v => v) => {
+    const av = typeof a === 'function' ? a(wA) : a;
+    const bv = typeof b === 'function' ? b(wB) : b;
+    const diff = bv - av;
+    const pct = av > 0 ? ((diff / av) * 100).toFixed(1) : 0;
+    const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'neutral';
+    return `<tr><td>${label}</td><td>${fmt(av)}</td><td>${fmt(bv)}</td><td><span class="delta ${cls}">${diff > 0 ? '+' : ''}${fmt(diff)} (${pct}%)</span></td></tr>`;
+  };
+
+  document.getElementById('compare-output').innerHTML = `
+    <div class="card">
+      <div class="card-title">Comparison: ${wA.name} vs ${wB.name}</div>
+      <div class="card-subtitle" style="margin-bottom:18px">All key metrics side by side</div>
+      <table class="compare-table">
+        <thead><tr><th>Metric</th><th>${wA.name}</th><th>${wB.name}</th><th>Change</th></tr></thead>
+        <tbody>
+          ${row('Total Bills', w => w.footfall.bills, w => w.footfall.bills, v => v.toLocaleString())}
+          ${row('Total Footfall', w => w.footfall.footfall, w => w.footfall.footfall, v => v.toLocaleString())}
+          ${row('L2L Footfall', w => w.footfall.l2l, w => w.footfall.l2l, v => v.toLocaleString())}
+          ${row('Meta Spend (₹)', w => w.perf.metaSpend, w => w.perf.metaSpend, v => '₹' + v.toLocaleString())}
+          ${row('Meta ROAS', w => w.perf.metaRoas, w => w.perf.metaRoas, v => v.toFixed(2))}
+          ${row('Meta Revenue (₹)', w => w.perf.metaRev, w => w.perf.metaRev, v => '₹' + v.toLocaleString())}
+          ${row('Google ROAS', w => w.perf.googRoas, w => w.perf.googRoas, v => v.toFixed(2))}
+          ${row('Google Revenue (₹)', w => w.perf.googRev, w => w.perf.googRev, v => '₹' + v.toLocaleString())}
+          ${row('Paid Traffic', w => w.web.paidTraffic, w => w.web.paidTraffic, v => v.toLocaleString())}
+          ${row('Paid Sessions', w => w.web.paidSess, w => w.web.paidSess, v => v.toLocaleString())}
+          ${row('Paid Conversions', w => w.web.paidConv, w => w.web.paidConv, v => v)}
+          ${row('SEO Traffic', w => w.web.seoTraffic, w => w.web.seoTraffic, v => v.toLocaleString())}
+          ${row('SEO Conversions', w => w.web.seoConv, w => w.web.seoConv, v => v)}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderWeekButtons();
+renderCompareSelects();
+renderOverview();
+</script>
+</body>
+</html>
